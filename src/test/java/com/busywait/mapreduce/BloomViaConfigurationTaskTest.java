@@ -1,0 +1,95 @@
+package com.busywait.mapreduce;
+
+import com.busywait.bloomfilter.BloomFilter;
+import com.busywait.bloomfilter.BloomUtils;
+import com.busywait.bloomfilter.hasher.RandomHasher;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
+
+/**
+ * @author Vanja Komadinovic
+ * @author vanjakom@gmail.com
+ */
+public class BloomViaConfigurationTaskTest {
+    protected static int numberOfElements = 100000;
+    protected static int bitsetSize = 800000;
+
+    public static String input_path_hdfs = "hdfs://localhost/temp/input_records";
+    public static String input_path_ids_hdfs = "hdfs://localhost/temp/input_ids";
+    public static String output_path_hdfs = "hdfs://localhost/temp/output";
+
+    @Test
+    public void test() {
+        // write sample data to HDFS, create BloomFilter and ids hashset
+        BloomFilter filter = new BloomFilter(bitsetSize, numberOfElements, new RandomHasher());
+        HashSet<Long> ids = new HashSet<Long>();
+
+        BloomUtils.fillWithRandom(filter, ids);
+
+        // write input data
+        try {
+            FileSystem fs = FileSystem.get(URI.create("hdfs://localhost/"), new Configuration());
+
+            // write input data
+            FSDataOutputStream stream = fs.create(new Path(input_path_hdfs));
+            for (Long id: ids) {
+                stream.write((id + "\tdata\toriginal data\n").getBytes());
+            }
+            stream.close();
+
+            // write ids
+             // write input data
+            stream = fs.create(new Path(input_path_ids_hdfs));
+            for (Long id: ids) {
+                stream.write((id + "\tid\n").getBytes());
+            }
+        } catch (Exception e) {
+            Assert.fail("Unable to upload input file to hdfs");
+        }
+
+        HashMap<String, String> additionalConf = new HashMap<String, String>();
+        additionalConf.put("mapred.reduce.tasks", "1");
+
+        // run map reduce
+        BloomViaConfigurationTask task = new BloomViaConfigurationTask();
+        try {
+            task.execute(filter, new String[] {input_path_hdfs, input_path_ids_hdfs}, output_path_hdfs, additionalConf);
+        } catch (Exception e) {
+            Assert.fail("Unable to execute map reduce task", e);
+        }
+
+        // test if output contains all ids, calculate false positive count
+        try {
+            FileSystem fs = FileSystem.get(URI.create("hdfs://localhost/"), new Configuration());
+
+            FSDataInputStream stream = fs.open(new Path(output_path_hdfs + "/part-r-00000"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                String[] elements = line.split("\t");
+                Long key = Long.parseLong(elements[0]);
+
+                ids.remove(key);
+            }
+            stream.close();
+        } catch (Exception e) {
+            Assert.fail("Unable to test output", e);
+        }
+
+        if (ids.size() > 0) {
+            Assert.fail("Not all ids found in output, number of ids: " + ids.size());
+        }
+    }
+}
