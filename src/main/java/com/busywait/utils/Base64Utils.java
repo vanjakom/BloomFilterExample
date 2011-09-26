@@ -14,4 +14,12 @@ public class Base64Utils {
     public static byte[] fromString(String string) {
         return Base64.decodeBase64(string);
     }
+
+    public static byte[] fromBase64(byte[] base64bytes) {
+        return Base64.decodeBase64(base64bytes);
+    }
+
+    public static byte[] toBase64(byte[] bytes) {
+        return Base64.encodeBase64(bytes);
+    }
 }

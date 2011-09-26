@@ -98,4 +98,8 @@ public class BloomFilter {
     protected int convertHashToPosition(int hash) {
         return Math.abs(hash) % bitSetSize;
     }
+
+    public Hasher getHasher() {
+        return hasher;
+    }
 }
