@@ -1,15 +1,14 @@
-package com.busywait.bloomfilter;
+package com.busywait.bloomfilterexample.bloomfilter;
 
-import com.busywait.bloomfilter.hasher.Hasher;
-import com.busywait.bloomfilter.hasher.RandomHasher;
-import com.busywait.bloomfilter.hasher.RepeatedMurmurHasher;
-import com.busywait.bloomfilter.hasher.StringHasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.Hasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.RandomHasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.RepeatedMurmurHasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.StringHasher;
+import com.busywait.bloomfilterexample.utils.BloomUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Random;
 
 /**
  * @author Vanja Komadinovic
@@ -43,7 +42,11 @@ public class BloomFilterPerformanceTest {
 
         BloomUtils.fillWithRandom(filter, ids);
 
-        BloomUtils.checkIfExists(filter, ids);
+        try {
+            BloomUtils.checkIfExists(filter, ids);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage(), e);
+        }
 
         // test false possitive
         int falsePossitiveCount = 0;

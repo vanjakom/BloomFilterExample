@@ -1,4 +1,4 @@
-package com.busywait.bloomfilter.hasher;
+package com.busywait.bloomfilterexample.bloomfilter.hasher;
 
 /**
  * @author Vanja Komadinovic

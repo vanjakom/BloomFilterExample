@@ -1,7 +1,6 @@
-package com.busywait.bloomfilter;
+package com.busywait.bloomfilterexample.utils;
 
-import org.testng.Assert;
-
+import com.busywait.bloomfilterexample.bloomfilter.BloomFilter;
 import java.util.HashSet;
 import java.util.Random;
 
@@ -24,11 +23,11 @@ public class BloomUtils {
         }
     }
 
-    public static void checkIfExists(BloomFilter filter, HashSet<Long> ids) {
+    public static void checkIfExists(BloomFilter filter, HashSet<Long> ids) throws Exception {
         // check if all records in HashSet are also in BloomFilter
         for (Long id: ids) {
             if (!filter.contains(id)) {
-                Assert.fail("Unable to find element early added to filter");
+                throw new Exception("Unable to find element early added to filter");
             }
         }
     }

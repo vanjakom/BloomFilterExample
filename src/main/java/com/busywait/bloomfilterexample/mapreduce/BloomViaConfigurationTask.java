@@ -1,7 +1,8 @@
-package com.busywait.mapreduce;
+package com.busywait.bloomfilterexample.mapreduce;
 
-import com.busywait.bloomfilter.BloomFilter;
-import com.busywait.bloomfilter.hasher.Hasher;
+import com.busywait.bloomfilterexample.bloomfilter.BloomFilter;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.Hasher;
+import com.busywait.bloomfilterexample.utils.Base64Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -13,7 +14,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -36,7 +36,7 @@ public class BloomViaConfigurationTask {
         protected void setup(Context context) throws IOException, InterruptedException {
             int expectedElements = Integer.parseInt(context.getConfiguration().get(CONF_BLOOM_EXPECTED_ELEMENTS));
             int bitSetSize = Integer.parseInt(context.getConfiguration().get(CONF_BLOOM_BITSET_SIZE));
-            byte[] bitsetBytes = context.getConfiguration().get(CONF_BLOOM_BITSET).getBytes(Charset.forName("UTF-8"));
+            byte[] bitsetBytes = Base64Utils.fromString(context.getConfiguration().get(CONF_BLOOM_BITSET));
 
             Hasher hasher = null;
 
@@ -47,6 +47,7 @@ public class BloomViaConfigurationTask {
             }
 
             filter = new BloomFilter(bitSetSize, expectedElements, hasher);
+            filter.setBytes(bitsetBytes);
         }
 
         @Override
@@ -83,7 +84,9 @@ public class BloomViaConfigurationTask {
                 }
             }
 
-            context.write(null, new Text(record));
+            if (hasId) {
+                context.write(null, new Text(record));
+            }
         }
     }
 
@@ -104,9 +107,10 @@ public class BloomViaConfigurationTask {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
 
-        job.getConfiguration().set(CONF_BLOOM_BITSET, new String(filter.getBytes(), Charset.forName("UTF-8")));
+        job.getConfiguration().set(CONF_BLOOM_BITSET, Base64Utils.fromBytes(filter.getBytes()));
         job.getConfiguration().set(CONF_BLOOM_BITSET_SIZE, "" + filter.getBitSetSize());
         job.getConfiguration().set(CONF_BLOOM_EXPECTED_ELEMENTS, "" + filter.getExpectedElementsNumber());
+        job.getConfiguration().set(CONF_HASHER_CLASS, "" + filter.getHasher().getClass().getName());
 
         for (String key: additionalConf.keySet()) {
             job.getConfiguration().set(key, additionalConf.get(key));

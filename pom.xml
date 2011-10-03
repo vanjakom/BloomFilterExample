@@ -54,11 +54,34 @@
                     <includes>
                         <include>**/*UnitTest.java</include>
                     </includes>
-                    <parallel>true</parallel>
-                    <threadCount>10</threadCount>
                     <useFile>true</useFile>
                     <argLine>-Djava.library.path=/usr/local/lib -Duser.timezone=Europe/Belgrade -Xmx1296m -Xms1048m</argLine>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/ListClassPathIntegrationTest.java</include>
+                    </includes>
+                    <useFile>true</useFile>
+                    <argLine>-Djava.library.path=/usr/local/lib -Duser.timezone=Europe/Belgrade -Xmx1296m -Xms1048m</argLine>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>/etc/hadoop/conf/</additionalClasspathElement>
+                        <additionalClasspathElement>target/BloomFilterExample-*-jar-with-dependencies.jar</additionalClasspathElement>
+                    </additionalClasspathElements>
+                    <classpathDependencyScopeExclude>runtime</classpathDependencyScopeExclude>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                          <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>

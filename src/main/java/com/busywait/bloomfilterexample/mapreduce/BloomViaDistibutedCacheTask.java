@@ -1,8 +1,8 @@
-package com.busywait.mapreduce;
+package com.busywait.bloomfilterexample.mapreduce;
 
-import com.busywait.bloomfilter.BloomFilter;
-import com.busywait.bloomfilter.hasher.Hasher;
-import com.busywait.utils.Base64Utils;
+import com.busywait.bloomfilterexample.bloomfilter.BloomFilter;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.Hasher;
+import com.busywait.bloomfilterexample.utils.Base64Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.*;
@@ -38,11 +38,23 @@ public class BloomViaDistibutedCacheTask {
             int expectedElements = Integer.parseInt(context.getConfiguration().get(CONF_BLOOM_EXPECTED_ELEMENTS));
             int bitSetSize = Integer.parseInt(context.getConfiguration().get(CONF_BLOOM_BITSET_SIZE));
 
-            BufferedReader reader = new BufferedReader(new FileReader("bloom_filter"));
-            String bloomSerialized = reader.readLine();
-            reader.close();
+            String bloomSerialized = null;
 
-            byte[] bitsetBytes = bloomSerialized.getBytes(Charset.forName("UTF-8"));
+            Path[] localPaths = DistributedCache.getLocalCacheFiles(context.getConfiguration());
+            for (Path p: localPaths) {
+                if (p.getName().equals("bloom_filter")) {
+                    BufferedReader reader = new BufferedReader(new FileReader(p.toUri().getPath()));
+                    bloomSerialized = reader.readLine();
+                    reader.close();
+                    break;
+                }
+            }
+
+            if (bloomSerialized == null) {
+                throw new IOException("Unable to retrieve serialized Bloom filter");
+            }
+
+            byte[] bitsetBytes = Base64Utils.fromString(bloomSerialized);
 
             Hasher hasher = null;
 
@@ -53,6 +65,7 @@ public class BloomViaDistibutedCacheTask {
             }
 
             filter = new BloomFilter(bitSetSize, expectedElements, hasher);
+            filter.setBytes(bitsetBytes);
         }
 
         @Override
@@ -89,7 +102,9 @@ public class BloomViaDistibutedCacheTask {
                 }
             }
 
-            context.write(null, new Text(record));
+            if (hasId) {
+                context.write(null, new Text(record));
+            }
         }
     }
 
@@ -115,7 +130,7 @@ public class BloomViaDistibutedCacheTask {
         outputStream.write(Base64Utils.fromBytes(filter.getBytes()).getBytes());
         outputStream.close();
 
-        DistributedCache.addFileToClassPath(new Path("/temp/bloom_filter"), new Configuration());
+        DistributedCache.addCacheFile(new URI("hdfs://localhost/temp/bloom_filter#bloom_filter"), job.getConfiguration());
 
         job.getConfiguration().set(CONF_BLOOM_BITSET_SIZE, "" + filter.getBitSetSize());
         job.getConfiguration().set(CONF_BLOOM_EXPECTED_ELEMENTS, "" + filter.getExpectedElementsNumber());

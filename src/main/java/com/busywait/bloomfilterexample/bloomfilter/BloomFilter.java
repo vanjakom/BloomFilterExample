@@ -1,6 +1,6 @@
-package com.busywait.bloomfilter;
+package com.busywait.bloomfilterexample.bloomfilter;
 
-import com.busywait.bloomfilter.hasher.Hasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.Hasher;
 
 import java.io.IOException;
 import java.util.BitSet;

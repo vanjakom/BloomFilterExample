@@ -1,15 +1,14 @@
-package com.busywait.mapreduce;
+package com.busywait.bloomfilterexample;
 
-import com.busywait.bloomfilter.BloomFilter;
-import com.busywait.bloomfilter.BloomUtils;
-import com.busywait.bloomfilter.hasher.RandomHasher;
+import com.busywait.bloomfilterexample.bloomfilter.BloomFilter;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.RandomHasher;
+import com.busywait.bloomfilterexample.mapreduce.BloomViaDistibutedCacheTask;
+import com.busywait.bloomfilterexample.utils.BloomUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -21,21 +20,22 @@ import java.util.HashSet;
  * @author Vanja Komadinovic
  * @author vanjakom@gmail.com
  */
-public class BloomViaConfigurationTaskTest {
-    protected static int numberOfElements = 100000;
-    protected static int bitsetSize = 800000;
+public class BloomViaDistributedCache {
+    protected static int numberOfElements = 10000;
+    protected static int bitsetSize = 80000;
 
     public static String input_path_hdfs = "hdfs://localhost/temp/input_records";
     public static String input_path_ids_hdfs = "hdfs://localhost/temp/input_ids";
-    public static String output_path_hdfs = "hdfs://localhost/temp/output";
+    public static String output_path_hdfs = "hdfs://localhost/temp/output_distcache";
 
-    @Test
-    public void test() {
+
+    public static void main(String[] args) {
         // write sample data to HDFS, create BloomFilter and ids hashset
         BloomFilter filter = new BloomFilter(bitsetSize, numberOfElements, new RandomHasher());
         HashSet<Long> ids = new HashSet<Long>();
 
         BloomUtils.fillWithRandom(filter, ids);
+        HashSet<Long> falseIds = BloomUtils.createFalseSet(ids);
 
         // write input data
         try {
@@ -46,6 +46,9 @@ public class BloomViaConfigurationTaskTest {
             for (Long id: ids) {
                 stream.write((id + "\tdata\toriginal data\n").getBytes());
             }
+            for (Long id: falseIds) {
+                stream.write((id + "\tdata\toriginal data\n").getBytes());
+            }
             stream.close();
 
             // write ids
@@ -54,19 +57,24 @@ public class BloomViaConfigurationTaskTest {
             for (Long id: ids) {
                 stream.write((id + "\tid\n").getBytes());
             }
+            stream.close();
         } catch (Exception e) {
-            Assert.fail("Unable to upload input file to hdfs");
+            System.err.println("Unable to upload input file to hdfs");
+            e.printStackTrace();
+            System.exit(1);
         }
 
         HashMap<String, String> additionalConf = new HashMap<String, String>();
         additionalConf.put("mapred.reduce.tasks", "1");
 
         // run map reduce
-        BloomViaConfigurationTask task = new BloomViaConfigurationTask();
+        BloomViaDistibutedCacheTask task = new BloomViaDistibutedCacheTask();
         try {
             task.execute(filter, new String[] {input_path_hdfs, input_path_ids_hdfs}, output_path_hdfs, additionalConf);
         } catch (Exception e) {
-            Assert.fail("Unable to execute map reduce task", e);
+            System.err.println("Unable to execute map reduce task");
+            e.printStackTrace();
+            System.exit(1);
         }
 
         // test if output contains all ids, calculate false positive count
@@ -85,11 +93,14 @@ public class BloomViaConfigurationTaskTest {
             }
             stream.close();
         } catch (Exception e) {
-            Assert.fail("Unable to test output", e);
+            System.err.println("Unable to test output");
+            e.printStackTrace();
+            System.exit(1);
         }
 
         if (ids.size() > 0) {
-            Assert.fail("Not all ids found in output, number of ids: " + ids.size());
+            System.err.println("Not all ids found in output, number of ids: " + ids.size());
+            System.exit(1);
         }
     }
 }

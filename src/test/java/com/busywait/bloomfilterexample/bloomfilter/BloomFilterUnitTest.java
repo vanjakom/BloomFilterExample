@@ -1,19 +1,15 @@
-package com.busywait.bloomfilter;
+package com.busywait.bloomfilterexample.bloomfilter;
 
-import com.busywait.bloomfilter.hasher.Hasher;
-import com.busywait.bloomfilter.hasher.RandomHasher;
-import com.busywait.bloomfilter.hasher.RepeatedMurmurHasher;
-import com.busywait.bloomfilter.hasher.StringHasher;
-import com.busywait.utils.Base64Utils;
-import org.apache.commons.codec.binary.Base64;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.Hasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.RandomHasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.RepeatedMurmurHasher;
+import com.busywait.bloomfilterexample.bloomfilter.hasher.StringHasher;
+import com.busywait.bloomfilterexample.utils.Base64Utils;
+import com.busywait.bloomfilterexample.utils.BloomUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Random;
 
 /**
  * @author Vanja Komadinovic
@@ -62,7 +58,11 @@ public class BloomFilterUnitTest {
             Assert.fail("Unable to deserialize filter", e);
         }
 
-        BloomUtils.checkIfExists(filter, ids);
+        try {
+            BloomUtils.checkIfExists(filter, ids);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage(), e);
+        }
     }
 
     @Test
@@ -94,8 +94,11 @@ public class BloomFilterUnitTest {
             Assert.fail("Unable to deserialize filter", e);
         }
 
-        BloomUtils.checkIfExists(filter, ids);
-    }
+        try {
+            BloomUtils.checkIfExists(filter, ids);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage(), e);
+        }    }
 
     protected void testWithHasher(Hasher hasher) {
         BloomFilter filter = new BloomFilter(bitsetSize, numberOfElements, hasher);
@@ -104,6 +107,9 @@ public class BloomFilterUnitTest {
 
         BloomUtils.fillWithRandom(filter, ids);
 
-        BloomUtils.checkIfExists(filter, ids);
-    }
+        try {
+            BloomUtils.checkIfExists(filter, ids);
+        } catch (Exception e) {
+            Assert.fail(e.getMessage(), e);
+        }    }
 }

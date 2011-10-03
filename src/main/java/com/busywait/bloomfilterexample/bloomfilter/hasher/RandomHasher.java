@@ -1,15 +1,19 @@
-package com.busywait.bloomfilter.hasher;
+package com.busywait.bloomfilterexample.bloomfilter.hasher;
+
+import java.util.Random;
 
 /**
  * @author Vanja Komadinovic
  * @author vanjakom@gmail.com
  */
-public class StringHasher implements Hasher {
+public class RandomHasher implements Hasher {
     public int[] hash(long key, int numberOfHashes) {
         int[] hashes = new int[numberOfHashes];
 
+        Random random = new Random(key);
+
         for (int i = 0; i < numberOfHashes; i++) {
-            hashes[i] = ("" + key + i).hashCode();
+            hashes[i] = random.nextInt();
         }
 
         return hashes;
