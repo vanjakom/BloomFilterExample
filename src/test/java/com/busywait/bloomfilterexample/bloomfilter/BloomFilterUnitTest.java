@@ -111,5 +111,6 @@ public class BloomFilterUnitTest {
             BloomUtils.checkIfExists(filter, ids);
         } catch (Exception e) {
             Assert.fail(e.getMessage(), e);
-        }    }
+        }
+    }
 }
