@@ -15,8 +15,6 @@ import java.util.HashSet;
  * @author vanjakom@gmail.com
  */
 public class BloomFilterPerformanceTest {
-    //public static int[] bitSetSizes = {200000, 400000, 800000};
-    //public static int[] numberOfElements = {100000, 100000, 100000};
     public static int[] bitSetSizes = {2000000, 4000000, 8000000};
     public static int[] numberOfElements = {1000000, 1000000, 1000000};
 
